@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "katex/dist/contrib/auto-render.mjs": "./katex/dist/contrib/auto-render.js",
+    "katex/dist/katex.min.css": "./katex/dist/katex.min.css",
+    "katex/dist/katex.min.js": "./katex/dist/katex.min.js"
+  }
+}

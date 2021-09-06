@@ -1,0 +1,53 @@
+@import "../node_modules/bulma/sass/utilities/_all.sass"
+@import "../node_modules/bulma/sass/base/_all.sass"
+@import "../node_modules/bulma/sass/elements/title.sass"
+@import "../node_modules/bulma/sass/elements/container.sass"
+@import "../node_modules/bulma/sass/elements/content.sass"
+@import "../node_modules/bulma/sass/layout/section.sass"
+@import "../node_modules/bulma/sass/layout/section.sass"
+@import "../node_modules/bulma/sass/grid/_all.sass"
+@import "../node_modules/bulma/sass/grid/columns.sass"
+@import "../node_modules/bulma/sass/helpers/_all.sass"
+@import "../node_modules/bulma/sass/helpers/flexbox.sass"
+
+body
+  overflow-x: hidden
+
+.math-couple
+  padding-top: 0.25rem
+  padding-bottom: 0.25rem
+
+  @extend .columns
+  @extend .is-mobile
+  @extend .is-multiline
+  @extend .is-vcentered
+  @extend .is-centered
+  @extend .no-vert-padding
+  @extend .is-flex-direction-row-reverse
+
+  &.animated
+    .katex
+      font-size: 1.0em
+
+.math-column
+  @extend .column
+  @extend .is-narrow
+  padding-left: 1.25rem !important
+  padding-right: 1.25rem !important
+
+canvas
+  width: 320px
+  margin: 0 auto
+  display: block
+  &.animated
+    cursor: pointer
+  +mobile
+    margin-left: calc((100% - 320px) / 2)
+
+.no-vert-padding
+  .column
+    padding-top: 0
+    padding-bottom: 0
+
+.no-break
+  white-space: nowrap

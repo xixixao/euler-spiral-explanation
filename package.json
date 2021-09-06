@@ -1,0 +1,22 @@
+{
+  "name": "euler-spiral",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "snowpack dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "csso-cli": "^3.0.0",
+    "purgecss": "^4.0.3",
+    "snowpack": "^3.7.1"
+  },
+  "dependencies": {
+    "@snowpack/plugin-sass": "^1.4.0",
+    "bulma": "^0.9.3",
+    "katex": "^0.13.13"
+  }
+}

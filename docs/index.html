@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explanation of the Euler Spiral / Clothoid curve"
+    />
+    <title>Euler Spiral (Clothoid) Illustrated Explanation</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="euler-explanation.css" />
+    <script type="module" src="grapher.js"></script>
+    <script type="module" src="vector.js"></script>
+    <script
+      type="module"
+      src="_snowpack/pkg/katex/dist/katex.min.css.proxy.js"
+    ></script>
+    <script type="module" src="_snowpack/pkg/katex/dist/katex.min.js"></script>
+    <script
+      type="module"
+      src="_snowpack/pkg/katex/dist/contrib/auto-render.js"
+    ></script>
+    <link
+      rel="preload"
+      href="fonts/KaTeX_Main-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="fonts/KaTeX_Math-Italic.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="fonts/KaTeX_Size2-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/KaTeX_Size3-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+
+  <body class="container is-max-desktop">
+    <noscript>
+      <p>You'll need JavaScript to really get the most out of this page.</p>
+      <p>
+        Welcome to the source code! Things which I'm aware could be improved: 1.
+        Katex could be rendered statically 2. Static illustrations could be
+        rendered statically into SVG 3. Dead code elimination is likely not
+        perfect 4. I could have done all of this in Observable, and using D3 for
+        graphs and animations
+      </p>
+    </noscript>
+    <section class="section content">
+      <h1>Euler Spiral / Clothoid - An Illustrated Explanation</h1>
+      <h2 id="motivation">Motivation</h2>
+      <p>
+        I’ve been playing around with some railway track geometry programming
+        and I wanted to include an accurate transition portion between arcs and
+        straight segments, like this:
+      </p>
+      <canvas id="draw-motivation" style="height: 200px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher, clothoid } from "./grapher.js";
+        const grapher = Grapher.forID("draw-motivation");
+        const A = v(40, 95);
+        const B = v(170, 95);
+        const alpha = TAU / 8;
+        const radius = 200;
+        const C = B.add(clothoid(alpha, radius));
+        const Cc = C.add(vp(alpha + TAU / 4, radius));
+        grapher.ctx.strokeStyle = grapher.ctx.fillStyle = "#ccc";
+        grapher.arc(B.add(v(0, radius)), radius, -TAU / 4, 0);
+        grapher.stylePrimary();
+        grapher.text(A.add(v(10, -10)), "straight");
+        grapher.text(B.add(v(210, 10)), "transition spiral");
+        grapher.text(C.add(v(60, 60)), "arc");
+        grapher.line(B.add(v(0, -10)), B.add(v(0, 10)));
+        grapher.line(B.add(v(0, -10)), B.add(v(0, 10)));
+        grapher.line(
+          C.add(vp(alpha + TAU / 4, 10)),
+          C.add(vp(alpha - TAU / 4, 10))
+        );
+        grapher.drawCurve(() => {
+          grapher.moveTo(A);
+          grapher.lineTo(B);
+          grapher.clothoidTo(B, alpha, radius);
+          grapher.arcTo(Cc, radius, alpha - TAU / 4, 0);
+        });
+      </script>
+      <p>
+        I didn't find the existing explanations of the euler spiral very clear
+        though, see for example
+        <a
+          href="https://web.archive.org/web/20210428052728/https://en.wikipedia.org/wiki/Euler_spiral"
+          target="_blank"
+          >its wiki page</a
+        >. So here’s hopefully a more approachable explanation.
+      </p>
+      <h2 id="parametric-curve">A parametric curve</h2>
+      <p>
+        The Euler spiral (also called Clothoid) is a parametric curve with a
+        special relationship between the length of the curve and its
+        “curvature”.
+      </p>
+      <p>
+        First, a parametric (2D) curve is defined by two equations both using
+        the same parameter. A more familiar example I’ll use throughout is the
+        circle. This is the parametric definition of a circle:
+      </p>
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          &t \equiv parameter
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          x = \cos(t)\\
+          y = \sin(t)
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        Below is an illustration of the circle curve as $t$ varies. Next to the
+        circle you can see each coordinate plotted as a separate function of
+        <span class="no-break">$t$:</span>
+      </p>
+
+      <canvas
+        id="draw-parametric-circle"
+        style="width: 320px; height: 150px"
+      ></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher } from "./grapher.js";
+        const grapher = Grapher.forID("draw-parametric-circle");
+
+        const circleAt = v(100, 120);
+        const xAt = v(260, 120);
+        const yAt = v(480, 120);
+
+        const t = TAU;
+        grapher.whenReady(() => {
+          grapher.styleSecondary();
+          const circleScale = v(60);
+          grapher.axes(circleAt, circleScale, {
+            horiz: ["x", [-1, 0, 1], [-1, 1]],
+            vert: ["y", [1, 0, -1], [-1, 1]],
+          });
+          const trigScale = v(60 / (TAU / 2), 60);
+          const trigAxes = (vertName) => ({
+            horiz: ["t", [0, "τ/2", "τ"], [0, 2], TAU / 2],
+            vert: [vertName, [1, 0, -1], [-1, 1]],
+          });
+          grapher.axes(xAt, trigScale, trigAxes("x"));
+          grapher.axes(yAt, trigScale, trigAxes("y"));
+
+          grapher.stylePrimary();
+          grapher.curveColored(circleAt, circleScale, t, (t) => vp(-t, 1));
+          grapher.yOfXColored(xAt, trigScale, t, Math.cos);
+          grapher.yOfXColored(yAt, trigScale, t, Math.sin);
+        });
+      </script>
+
+      <p>
+        For the circle the curve “wraps around” at $t = \tau$ (<a
+          href="https://tauday.com/tau-manifesto"
+          >1 turn radians</a
+        >).
+      </p>
+      <p>The definition of the Euler spiral is a bit more complicated:</p>
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          &t \equiv parameter\\
+          &u \equiv arbitrary\ variable\ name\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          x = \int_0^t \cos(u^2) \cdot du\\
+          y = \int_0^t \sin(u^2) \cdot du
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        So, at $t$ the curve’s point’s $x$ coordinate will be the integral (area
+        under the curve) of the function $\cos u^2$ from $u=0$ to $u=t$, and
+        similarly for <span class="no-break">$y$.</span>
+      </p>
+
+      <p>And here’s an illustration of the spiral curve as $t$ varies:</p>
+
+      <canvas id="draw-parametric-euler" style="height: 240px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher, clothoid } from "./grapher.js";
+        const grapher = Grapher.forID("draw-parametric-euler");
+        const eulerAt = v(80, 270);
+        const xAt = v(330, 150);
+        const yAt = v(330, 350);
+
+        const cutoff = TAU;
+        const t = 1.1 * TAU;
+        grapher.whenReady(() => {
+          grapher.styleSecondary();
+          const eulerScale = v(120);
+          grapher.axes(eulerAt, eulerScale, {
+            horiz: ["x", [0, 1], [0, 1]],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+          const trigScale = v(120 / (TAU / 2), 60);
+          const trigAxes = (vertName) => ({
+            horiz: ["t", [0, "τ/2", "τ"], [0, 2], TAU / 2],
+            vert: [vertName, [1, 0, -1], [-1, 1]],
+          });
+          grapher.axes(xAt, trigScale, trigAxes("dx"));
+          grapher.axes(yAt, trigScale, trigAxes("dy"));
+
+          grapher.stylePrimary();
+          const to = t;
+          const start = eulerAt;
+          grapher.curveColored(eulerAt, eulerScale, t, (t) =>
+            clothoid(1, 0.5, t, 100).multiplyVec(v(1, -1))
+          );
+
+          const realT = Math.min(t, cutoff);
+          grapher.yOfXColored(xAt, trigScale, realT, (x) => Math.cos(x ** 2));
+          grapher.yOfXColored(yAt, trigScale, realT, (x) => Math.sin(x ** 2));
+
+          const limit = 0.5 * Math.sqrt(TAU / 4);
+          const limitCenter = eulerAt.add(
+            v(limit, -limit).multiplyVec(eulerScale)
+          );
+          grapher.circle(limitCenter, eulerScale.x / (2 * cutoff));
+          grapher.ctx.fill();
+        });
+      </script>
+
+      <p>
+        On the right you can see the functions of $t$ which given their integral
+        define each coordinate of the spiral. As $t$ approaches $\infin$ the
+        spiral approaches the "center of the eye". The limit is
+        $x=y=\sqrt{\pi}/2$.
+      </p>
+
+      <p>
+        Unlike the circle, the Euler spiral has a unique point defined for each
+        value of $t$ from $-\infin$ towards
+        <span class="no-break">$\infin$.</span>
+      </p>
+
+      <h2 id="length">Length</h2>
+      <p>For completeness I’ll add one more example, a horizontal line:</p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \theta &\equiv angle\ (slope)\ of\ line\\
+          t &\equiv parameter\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          x = \cos(\theta) \cdot t\\
+          y = \sin(\theta) \cdot t
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        The length of the line, circle and Euler spiral curves from $t = 0$ to
+        $t = L$ is $L$. The length grows linearly with the parameter. This is
+        not the case for other curves, such as the
+        <a
+          href="https://www.math.drexel.edu/~tolya/arc_length_x%5E2.pdf"
+          target="_blank"
+          >parabola</a
+        >
+        ($y = t^2$, $x = t$).
+      </p>
+      <p>Here's an illustration of all three curve types as $t$ varies:</p>
+
+      <canvas id="draw-lengths" style="height: 220px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher, clothoid } from "./grapher.js";
+        const grapher = Grapher.forID("draw-lengths");
+
+        const fullAt = v(140, 170);
+        const partialAt = v(200, 410);
+
+        const t = TAU;
+        grapher.whenReady(() => {
+          grapher.styleSecondary();
+
+          const fullScale = v(60);
+          grapher.axes(fullAt, fullScale, {
+            horiz: ["x", [0, "τ"], [0, 1], t],
+            vert: ["y", [2, 1, 0], [-2, 0]],
+          });
+          const tP = TAU / 4;
+          const partialScale = v(160);
+          grapher.axes(partialAt, partialScale, {
+            horiz: ["x", [0, "τ/4"], [0, 1], tP],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+
+          grapher.stylePrimary();
+          grapher.curveColored(fullAt, fullScale, t, (t) =>
+            clothoid(1, 0.5, t, 100).multiplyVec(v(1, -1))
+          );
+          grapher.curveColored(fullAt, fullScale, t, (t) =>
+            vp(-t + TAU / 4, 1).add(v(0, -1))
+          );
+          grapher.curveColored(fullAt, fullScale, t, (t) =>
+            v(t, 0).add(v(0, 0))
+          );
+
+          const scale = 4;
+          const tPP = (scale * t) / 4;
+          grapher.curveColored(partialAt, partialScale, tPP, (t) =>
+            clothoid(1, 0.5, t / scale, 100).multiplyVec(v(1, -1))
+          );
+          grapher.curveColored(partialAt, partialScale, tPP, (t) =>
+            vp(-(t / scale) + TAU / 4, 1).add(v(0, -1))
+          );
+          grapher.curveColored(partialAt, partialScale, tPP, (t) =>
+            v(t / scale, 0).add(v(0, 0))
+          );
+        });
+      </script>
+
+      <h2 id="curvature">Curvature</h2>
+      <p>
+        The curvature of a curve at a given point is the reciprocal of the
+        radius of the largest circle that would “fit” “under” the curve at that
+        point, such that the curve would be tangent to the circle.
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          k &\equiv curvature\\
+          R &\equiv radius\ of\ tangential\ circle
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          k = \frac{1}{R}
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        The animation below shows both the
+        <span style="color: #f30">curve</span> and the "fitted" circle, the
+        circle’s radius and the value of the curvature for given $t$. Tap it to
+        replay.
+      </p>
+
+      <canvas
+        id="draw-curvature"
+        class="animated"
+        style="height: 160px"
+      ></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher, clothoid } from "./grapher.js";
+        const grapher = Grapher.forID("draw-curvature");
+        const eulerAt = v(220, 270);
+        const maxT = 0.4 * TAU;
+
+        grapher.animate((time) => {
+          const t = Math.min(maxT, 0.001 + TAU * (time / 12000) ** 3);
+          grapher.styleSecondary();
+
+          const eulerScale = v(240);
+          grapher.axes(eulerAt, eulerScale, {
+            horiz: ["x", [0, 1], [0, 1]],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+
+          grapher.stylePrimary();
+          const R = 0.5 / t;
+          const curve = (t) => clothoid(1, 0.5, t, 100).multiplyVec(v(1, -1));
+
+          grapher.circle(
+            eulerAt.add(
+              curve(t)
+                .add(vp(-t * t - TAU / 4, R))
+                .multiplyVec(eulerScale)
+            ),
+            R * eulerScale.x
+          );
+
+          grapher.ctx.strokeStyle = "#f30";
+          grapher.curveCached("euler", eulerAt, eulerScale, t, curve);
+
+          grapher.modifyFormulas("text-curvature", ([textR, textK, textT]) => {
+            textR.innerText = R > 100 ? "∞" : R.toFixed(2);
+            textK.innerText = (t / TAU).toFixed(2);
+            textT.innerText = (t * 2).toFixed(2);
+          });
+          return t >= maxT;
+        });
+      </script>
+      <!-- prettier-ignore -->
+      <div class="math-couple animated" id="text-curvature">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          R &\approx \infin\\
+          k &\approx 0.00\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          t &\approx 0.00 \cdot \tau
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        The curvature grows linearly with $t$, and this is the defining
+        characteristic of the Euler spiral. The exact relationship is:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          R &\equiv radius\ of\ tangential\ circle\\
+          t &\equiv parameter\\
+          k &\equiv curvature\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          R &= \frac{1}{2 \cdot t} \\[1em]
+          k &= 2 \cdot t\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <h2 id="slope">Slope</h2>
+      <p>
+        For the Euler spiral, just like for the circle, there is a relationship
+        between the parameter $t$ and the angle of the curve, which can be
+        measured either from the center(s) of the “fitted” circle(s), or as a
+        slope of the curve (since the slope, the tangent, is always
+        perpendicular to the point-center line). For the circle the relationship
+        is:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \theta &\equiv angle\ (slope)\ at\ t\\
+          t &\equiv parameter\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \theta = t
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>For the Euler spiral the relationship is:</p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \theta &\equiv angle\ (slope)\ at\ t\\
+          t &\equiv parameter\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \theta = t^2
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <canvas id="draw-slopes" class="animated" style="height: 170px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher, clothoid } from "./grapher.js";
+        const grapher = Grapher.forID("draw-slopes");
+        const circleAt = v(40, 220);
+        const eulerAt = v(280, 220);
+        const scale = v(160);
+
+        const maxT = TAU / 4;
+
+        grapher.animate((time) => {
+          const t = Math.min(maxT, TAU * (time / 24000));
+          grapher.styleSecondary();
+
+          grapher.axes(circleAt, scale, {
+            horiz: ["x", [0, 1], [0, 1]],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+          grapher.axes(eulerAt, scale, {
+            horiz: ["x", [0, 1], [0, 1]],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+
+          grapher.stylePrimary();
+
+          const circleCenter = circleAt.add(v(0, -scale.y));
+          const circleTangentPoint = circleCenter.add(
+            vp(-t + TAU / 4, scale.x)
+          );
+          const circleAxisPoint = circleTangentPoint.add(
+            vp(-t, (-scale.x * (1 - Math.cos(t))) / Math.sin(t))
+          );
+
+          grapher.line(circleTangentPoint, circleAxisPoint);
+          grapher.line(circleAxisPoint, circleAxisPoint.add(v(30, 0)));
+          grapher.arc(circleAxisPoint, 20, 0, -t, true);
+
+          grapher.line(circleCenter, circleCenter.add(v(0, 30)));
+          grapher.line(
+            circleCenter,
+            circleCenter.add(vp(-t + TAU / 4, scale.x))
+          );
+          grapher.arc(circleCenter, 20, TAU / 4, -t + TAU / 4, true);
+
+          const R = 0.5 / t;
+          const curve = (t) => clothoid(1, 0.5, t, 100).multiplyVec(v(1, -1));
+
+          const eulerAngle = t ** 2;
+          const eulerTangentPoint = eulerAt.add(curve(t).multiplyVec(scale));
+          const eulerXAxisPoint = eulerTangentPoint.add(
+            vp(
+              -eulerAngle,
+              -(eulerAt.y - eulerTangentPoint.y) /
+                Math.abs(Math.cos(-eulerAngle - TAU / 4))
+            )
+          );
+          grapher.line(eulerTangentPoint, eulerXAxisPoint);
+          grapher.line(eulerXAxisPoint, eulerXAxisPoint.add(v(30, 0)));
+          grapher.arc(eulerXAxisPoint, 20, 0, -eulerAngle, true);
+
+          const eulerYAxisPoint = eulerTangentPoint.add(
+            vp(
+              -eulerAngle - TAU / 4,
+              -(eulerAt.x - eulerTangentPoint.x) /
+                Math.abs(Math.cos(-eulerAngle - TAU / 4))
+            )
+          );
+
+          grapher.line(eulerYAxisPoint, eulerYAxisPoint.add(v(0, 30)));
+          grapher.line(eulerYAxisPoint, eulerTangentPoint);
+          grapher.arc(
+            eulerYAxisPoint,
+            20,
+            TAU / 4,
+            -eulerAngle + TAU / 4,
+            true
+          );
+
+          grapher.ctx.strokeStyle = "#f30";
+          grapher.arc(circleCenter, scale.x, TAU / 4, -t + TAU / 4, true);
+          grapher.curveCached("euler", eulerAt, scale, t, curve);
+
+          grapher.modifyFormulas("text-slopes", ([textT2, textT]) => {
+            textT.innerText = (t / TAU).toFixed(2);
+            textT2.innerText = (eulerAngle / TAU).toFixed(2);
+          });
+          return t >= maxT;
+        });
+      </script>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple animated" id="text-slopes">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          t^2 &\approx 0.00 \cdot \tau\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          t &\approx 0.00 \cdot \tau\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <h2 id="scale">Scale</h2>
+      <p>
+        The radius of the circle shown before is $1$. When we want to change the
+        radius we scale the curve uniformly:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          R \equiv radius\ of\ circle\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          x = R \cdot \sin\biggl(\frac{t}{R}\biggr)\\[1em]
+          y = R \cdot \cos\biggl(\frac{t}{R}\biggr)\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        I added the division by $R$ to maintain the following relationships:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          L &\equiv length\ of\ arc\ at\ t\\
+          t &\equiv parameter\\
+          \theta &\equiv angle\ (slope)\ at\ t\\
+          R &\equiv radius\ of\ circle\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          L &= t\\
+          \theta &= \frac{t}{R}
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <canvas id="draw-circle-radius" style="height: 170px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher } from "./grapher.js";
+        const grapher = Grapher.forID("draw-circle-radius");
+
+        const at = v(320, 160);
+        const scale = v(60);
+
+        grapher.whenReady(() => {
+          grapher.styleSecondary();
+          grapher.axes(at, scale, {
+            horiz: ["R", [-2, -1, 0, 1, 2], [-2, 2]],
+            vert: ["", [2, 1, 0, -1, -2], [-2, 2]],
+          });
+          grapher.stylePrimary();
+          for (let i = 0; i <= scale.x; i++) {
+            if (i % 5 === 0) {
+              grapher.ctx.strokeStyle = grapher.lchColor(50, 230, i * 5);
+              grapher.circle(at, scale.x + i);
+            }
+          }
+        });
+      </script>
+
+      <p>
+        Similarly we can scale the Euler spiral to achieve a desired curvature
+        at any point (for any $t$). In other words, we can scale the spiral to
+        get a segment of desired length with a given tangent radius:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          t_L &\equiv chosen\ parameter\ value\\
+          R_L &\equiv desired\ radius\ at\ t_L\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          &x = \sqrt{2 \cdot R_L \cdot t_L} \cdot \int_0^{\frac{t}{\sqrt{2 \cdot R_L \cdot t_L}} } \cos(u^2) \cdot du\\
+          &y = \sqrt{2 \cdot R_L \cdot t_L} \cdot \int_0^{\frac{t}{\sqrt{2 \cdot R_L \cdot t_L}} } \sin(u^2) \cdot du\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        This falls out of the definition of the curve, but I haven’t found a
+        good explanation for it (if you know of one please get in touch).
+      </p>
+
+      <canvas id="draw-euler-radius" style="height: 250px"></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher } from "./grapher.js";
+        const grapher = Grapher.forID("draw-euler-radius");
+
+        const eulerAt = v(200, 300);
+        const AAt = v(200, 400);
+        const scale = v(120);
+
+        grapher.whenReady(() => {
+          grapher.styleSecondary();
+          grapher.axes(eulerAt, scale, {
+            horiz: ["x", [0, 1, 2], [0, 2]],
+            vert: ["y", [2, 1, 0], [-2, 0]],
+          });
+          grapher.horizAxis(AAt, scale, "A", [0, 1, 2], [0, 2]);
+
+          grapher.stylePrimary();
+          const finalAngle = 0.5 * TAU;
+          const colorScale = 2.5;
+          for (let i = 0; i <= scale.x; i++) {
+            if (i % 5 === 0) {
+              grapher.ctx.strokeStyle = grapher.lchColor(
+                50,
+                230,
+                i * colorScale
+              );
+              const radius = (scale.x + i) / (2 * Math.sqrt(finalAngle));
+              grapher.clothoid(eulerAt, finalAngle, radius, 0, -1, false, 100);
+            }
+          }
+          grapher.curveColored(
+            AAt,
+            scale,
+            1,
+            (x) => v(x + 1, 0),
+            scale.x * colorScale
+          );
+        });
+      </script>
+
+      <p>
+        If we call the square of the scaling multiplier "$A$", we get the
+        following formulas:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple" id="curvature-text">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          A &\equiv 2 \cdot R_L \cdot t_L\\
+          L &\equiv length\ of\ curve\ at\ t\\
+          R &\equiv radius\ of\ tangetial\ circle\\
+          \theta &\equiv angle\ (slope)\ at\ t\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          L &= t\\
+          R &= \frac{A}{2 \cdot t}\\[1em] \theta &=
+          \frac{t^2}{A}\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <h2 id="rendering">Rendering the curve</h2>
+      <p>
+        So far I’ve been showing the proper definition of the Euler spiral using
+        its parametric equations. But the integral does not have a simple
+        analytical solution, and so to render the curve we need to employ some
+        other method. The most common one is using the power series (Taylor
+        series) expansion of the integrals:
+      </p>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          t &\equiv parameter\\
+          i &\equiv abitrary\ variable\ name\\
+          \end{aligned}
+          $$
+        </div>
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          x &= \sum_{i=0}^{\infin} \frac{
+          (-1)^i \cdot t^{4 \cdot i + 1}
+          }{
+          (2 \cdot i)! \cdot (4 \cdot i + 1)
+          }\\
+          y &= \sum_{i=0}^{\infin} \frac{
+          (-1)^i \cdot t^{4 \cdot i + 3}
+          }{
+          (2 \cdot i + 1)! \cdot (4 \cdot i + 3)
+          }\\
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <p>
+        The larger the value of $t$, the more elements of the power series we
+        need to employ (larger maximum $i$), as demonstrated below:
+      </p>
+
+      <canvas
+        id="draw-euler-series"
+        class="animated"
+        style="height: 180px"
+      ></canvas>
+      <script type="module">
+        import { TAU, v, vp, Grapher } from "./grapher.js";
+        const grapher = Grapher.forID("draw-euler-series");
+
+        const eulerAt = v(200, 300);
+        const AAt = v(200, 400);
+        const scale = v(240);
+        const iScale = v(40);
+
+        const maxI = 20;
+        const maxSingleT = 5;
+        const finalAngle = 3 * TAU;
+        const maxT = maxI * maxSingleT;
+
+        grapher.animate((time) => {
+          const totalT = Math.min(maxT, time / 170);
+          const i = Math.floor(totalT / maxSingleT) + 1;
+          const t = totalT % maxSingleT;
+          grapher.styleSecondary();
+          grapher.axes(eulerAt, scale, {
+            horiz: ["x", [0, 1], [0, 1]],
+            vert: ["y", [1, 0], [-1, 0]],
+          });
+
+          const colorScale = 40;
+          const radius = scale.x / (2 * Math.sqrt(finalAngle));
+
+          if (i > 1) {
+            grapher.clothoid(eulerAt, finalAngle, radius, 0, -1, false, i - 1);
+          }
+
+          grapher.stylePrimary();
+
+          grapher.clothoid(eulerAt, finalAngle, radius, 0, -1, false, i);
+
+          grapher.modifyFormulas("text-series", ([textI]) => {
+            textI.innerText = i;
+          });
+          return totalT >= maxT;
+        });
+      </script>
+
+      <!-- prettier-ignore -->
+      <div class="math-couple animated" id="text-series">
+        <div class="math-column">
+          $$
+          \begin{aligned}
+          \max(i) &= 1
+          \end{aligned}
+          $$
+        </div>
+      </div>
+
+      <h2 id="conclusion">Conclusion</h2>
+      <p>
+        I hope that you found this article helpful. Let me know if you found a
+        mistake or have a suggestion for improvement.
+      </p>
+    </section>
+    <script type="module">
+      import "./_snowpack/pkg/katex/dist/katex.min.css.proxy.js";
+      import "./_snowpack/pkg/katex/dist/katex.min.js";
+
+      import renderMathInElement from "./_snowpack/pkg/katex/dist/contrib/auto-render.js";
+
+      renderMathInElement(document.body, {
+        trust: true,
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+        ],
+      });
+    </script>
+  </body>
+</html>
