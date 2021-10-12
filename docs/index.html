@@ -144,10 +144,7 @@
         <span class="no-break">$t$:</span>
       </p>
 
-      <canvas
-        id="draw-parametric-circle"
-        style="width: 320px; height: 150px"
-      ></canvas>
+      <canvas id="draw-parametric-circle" style="height: 150px"></canvas>
       <script type="module">
         import { TAU, v, vp, Grapher } from "./grapher.js";
         const grapher = Grapher.forID("draw-parametric-circle");
@@ -428,9 +425,9 @@
           grapher.curveCached("euler", eulerAt, eulerScale, t, curve);
 
           grapher.modifyFormulas("text-curvature", ([textR, textK, textT]) => {
+            textT.innerText = (t / TAU).toFixed(2);
             textR.innerText = R > 100 ? "∞" : R.toFixed(2);
-            textK.innerText = (t / TAU).toFixed(2);
-            textT.innerText = (t * 2).toFixed(2);
+            textK.innerText = (t * 2).toFixed(2);
           });
           return t >= maxT;
         });
