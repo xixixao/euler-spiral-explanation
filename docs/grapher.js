@@ -263,13 +263,10 @@ export function clothoid(finalAngle, radius, percent = 1, L = 3) {
   const AR = radius * 2 * Math.sqrt(finalAngle);
   const at = Math.sqrt(finalAngle) * percent;
   for (let i = 0; i < L; i++) {
-    y +=
-      (AR * ((-1) ** i * at ** (4 * i + 3))) /
-      (factorial(2 * i + 1) * (4 * i + 3));
-    x +=
-      (AR * ((-1) ** i * at ** (4 * i + 1))) / (factorial(2 * i) * (4 * i + 1));
+    y += ((-1) ** i * at ** (4 * i + 3)) / (factorial(2 * i + 1) * (4 * i + 3));
+    x += ((-1) ** i * at ** (4 * i + 1)) / (factorial(2 * i) * (4 * i + 1));
   }
-  return v(x, y);
+  return v(AR * x, AR * y);
 }
 
 function factorial(num) {
